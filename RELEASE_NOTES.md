@@ -7,6 +7,7 @@ First public Android release.
 - Adds a quiet, locally generated stereo layer while Spotify or another media app continues playing.
 - Includes nine evidence-labeled modes: four everyday binaural presets, neutral control, Binaural 40, MIT/Martorell 1 ms tone pips, human 40 Hz AM flutter, and human 40 Hz clicks.
 - Adds an optional capped Music assist that detects concurrent playback and smoothly raises only the local stream by 25%, without capturing or analyzing song audio.
+- Shows a concise possible-benefit statement on every mode and clearly identifies unproven human cognitive or health outcomes.
 - Supports steady differences or gradual 0-40 Hz glides around a carrier-centered stereo pair.
 - Offers an optional Gateway-inspired preparation using ordinary intention, breathing, and relaxation practices.
 - Stores optional before/after calm, focus, and energy ratings only on the device.
