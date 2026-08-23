@@ -1,0 +1,26 @@
+# Local Android configuration
+local.properties
+
+# Gradle and IDE output
+.gradle/
+.kotlin/
+build/
+**/build/
+.idea/
+*.iml
+
+# Signing material and secrets
+*.jks
+*.keystore
+keystore.properties
+release-secrets/
+
+# Local QA and scratch artifacts
+qa/
+tmp/
+dist/
+hemi-sync-android/
+
+# OS files
+.DS_Store
+Thumbs.db
