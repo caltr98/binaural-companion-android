@@ -4,6 +4,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+private const val FORTY_HZ_POSSIBLE_BENEFIT =
+    "May temporarily synchronize auditory brain activity at 40 Hz and could support attention or memory-related networks. Lasting cognitive or medical benefits are not proven."
+
 enum class StimulusType(
     val label: String,
     val isBinaural: Boolean,
@@ -84,7 +87,7 @@ enum class BeatPreset(
         endBeatHz = 40f,
         carrierHz = 400f,
         description = "The gentler gamma option, but it evokes a weaker 40 Hz response than acoustic modulation.",
-        benefit = "May offer a gentler way to explore a 40 Hz stereo beat; cognitive benefits are unproven.",
+        benefit = FORTY_HZ_POSSIBLE_BENEFIT,
         defaultMinutes = 10,
         evidenceLabel = "Weaker human ASSR",
     ),
@@ -96,7 +99,7 @@ enum class BeatPreset(
         endBeatHz = 40f,
         carrierHz = 10_000f,
         description = "Replicates the auditory waveform used by Martorell et al. in mice. It can sound sharp.",
-        benefit = "May create a temporary 40 Hz auditory response; human memory or health benefits are unproven.",
+        benefit = FORTY_HZ_POSSIBLE_BENEFIT,
         defaultMinutes = 10,
         evidenceLabel = "MIT mouse protocol",
         stimulusType = StimulusType.GENUS_TONE_PIPS,
@@ -109,7 +112,7 @@ enum class BeatPreset(
         endBeatHz = 40f,
         carrierHz = 1_000f,
         description = "A 100% amplitude-modulated tone. Robust human ASSR and more distraction-resistant than clicks.",
-        benefit = "May create a steady 40 Hz auditory response with less discomfort than clicks; lasting benefits are unproven.",
+        benefit = FORTY_HZ_POSSIBLE_BENEFIT,
         defaultMinutes = 10,
         evidenceLabel = "Robust human ASSR",
         stimulusType = StimulusType.ASSR_AM_TONE,
@@ -122,7 +125,7 @@ enum class BeatPreset(
         endBeatHz = 40f,
         carrierHz = 0f,
         description = "A broadband click train that reliably evokes ASSR, but is more jarring and attention-sensitive.",
-        benefit = "May create a clear 40 Hz auditory response for research; everyday cognitive benefits are unproven.",
+        benefit = FORTY_HZ_POSSIBLE_BENEFIT,
         defaultMinutes = 10,
         evidenceLabel = "Robust human ASSR",
         stimulusType = StimulusType.ASSR_CLICK_TRAIN,
@@ -139,6 +142,9 @@ enum class BeatPreset(
         defaultMinutes = 10,
         evidenceLabel = "A/B control",
     );
+
+    val isFortyHz: Boolean
+        get() = startBeatHz == 40f && endBeatHz == 40f
 
     companion object {
         fun fromId(id: String?): BeatPreset = entries.firstOrNull { it.id == id } ?: CALM_FOCUS

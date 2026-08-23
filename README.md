@@ -36,6 +36,7 @@ The primary button combines the two user actions—start the layer, then open Sp
 
 The protocol labels are deliberately specific:
 
+- Every 40 Hz mode states the same plain-language boundary: it may temporarily synchronize auditory brain activity and could support attention or memory-related networks, while lasting cognitive or medical benefits remain unproven.
 - **MIT tone pips** reproduce the auditory stimulus described by Martorell et al. (2019): 1 ms, 10 kHz tones every 25 ms (40 pips/s). The key pathology and memory findings were in 5XFAD and tauopathy **mice**, not proof of a human treatment. The user-supplied website incorrectly ties this auditory waveform to Iaccarino et al. (2016), which studied 40 Hz **visual flicker** in mice.
 - **Human AM 40** uses a 1 kHz tone with a 100% 40 Hz amplitude envelope. Human auditory steady-state response (ASSR) research consistently shows strong phase-locked activity around 40 Hz. This is an EEG response, not evidence of general cognitive enhancement.
 - **Human clicks 40** uses alternating-polarity 1 ms clicks at 40/s. Clicks reliably evoke ASSR but are jarring, and published work found click responses more affected by distraction than flutter amplitude-modulated tones.

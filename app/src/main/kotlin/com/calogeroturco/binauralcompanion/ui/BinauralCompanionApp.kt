@@ -571,7 +571,7 @@ private fun PresetRow(
                         lineHeight = 18.sp,
                     )
                     Text(
-                        text = "POSSIBLE BENEFIT",
+                        text = if (preset.isFortyHz) "POSSIBLE 40 HZ BENEFIT" else "POSSIBLE BENEFIT",
                         color = Mint,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
