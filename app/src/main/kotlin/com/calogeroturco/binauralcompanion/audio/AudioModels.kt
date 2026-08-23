@@ -4,6 +4,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+enum class StimulusType(
+    val label: String,
+    val isBinaural: Boolean,
+    val adjustableParameters: Boolean,
+) {
+    BINAURAL_BEAT("Binaural beat", isBinaural = true, adjustableParameters = true),
+    GENUS_TONE_PIPS("40 Hz tone pips", isBinaural = false, adjustableParameters = false),
+    ASSR_AM_TONE("40 Hz AM flutter", isBinaural = false, adjustableParameters = false),
+    ASSR_CLICK_TRAIN("40 Hz click train", isBinaural = false, adjustableParameters = false),
+}
+
 enum class BeatPreset(
     val id: String,
     val title: String,
@@ -14,6 +25,7 @@ enum class BeatPreset(
     val description: String,
     val defaultMinutes: Int,
     val evidenceLabel: String,
+    val stimulusType: StimulusType = StimulusType.BINAURAL_BEAT,
 ) {
     WIND_DOWN(
         id = "wind_down",
@@ -61,14 +73,50 @@ enum class BeatPreset(
     ),
     LAB_GAMMA(
         id = "lab_gamma",
-        title = "Lab 40",
-        bandLabel = "40 Hz · gamma-range",
+        title = "Binaural 40",
+        bandLabel = "40 Hz · stereo difference",
         startBeatHz = 40f,
         endBeatHz = 40f,
-        carrierHz = 340f,
-        description = "A brief, clearly experimental attention setting.",
+        carrierHz = 400f,
+        description = "The gentler gamma option, but it evokes a weaker 40 Hz response than acoustic modulation.",
         defaultMinutes = 10,
-        evidenceLabel = "Early evidence",
+        evidenceLabel = "Weaker human ASSR",
+    ),
+    GENUS_40(
+        id = "genus_40",
+        title = "MIT tone pips",
+        bandLabel = "40/s · 1 ms at 10 kHz",
+        startBeatHz = 40f,
+        endBeatHz = 40f,
+        carrierHz = 10_000f,
+        description = "Replicates the auditory waveform used by Martorell et al. in mice. It can sound sharp.",
+        defaultMinutes = 10,
+        evidenceLabel = "MIT mouse protocol",
+        stimulusType = StimulusType.GENUS_TONE_PIPS,
+    ),
+    ASSR_AM_40(
+        id = "assr_am_40",
+        title = "Human AM 40",
+        bandLabel = "40 Hz envelope · 1 kHz tone",
+        startBeatHz = 40f,
+        endBeatHz = 40f,
+        carrierHz = 1_000f,
+        description = "A 100% amplitude-modulated tone. Robust human ASSR and more distraction-resistant than clicks.",
+        defaultMinutes = 10,
+        evidenceLabel = "Robust human ASSR",
+        stimulusType = StimulusType.ASSR_AM_TONE,
+    ),
+    ASSR_CLICKS_40(
+        id = "assr_clicks_40",
+        title = "Human clicks 40",
+        bandLabel = "40 clicks/s · 1 ms",
+        startBeatHz = 40f,
+        endBeatHz = 40f,
+        carrierHz = 0f,
+        description = "A broadband click train that reliably evokes ASSR, but is more jarring and attention-sensitive.",
+        defaultMinutes = 10,
+        evidenceLabel = "Robust human ASSR",
+        stimulusType = StimulusType.ASSR_CLICK_TRAIN,
     ),
     NEUTRAL(
         id = "neutral",
@@ -94,6 +142,7 @@ data class SessionConfig(
     val carrierHz: Float,
     val level: Float,
     val durationMinutes: Int,
+    val musicAssist: Boolean,
 )
 
 data class PlaybackSnapshot(
@@ -102,6 +151,8 @@ data class PlaybackSnapshot(
     val beatHz: Float = 0f,
     val remainingSeconds: Int = 0,
     val routeLabel: String = "",
+    val stimulusLabel: String = "",
+    val musicDetected: Boolean = false,
     val errorMessage: String? = null,
 )
 
@@ -116,15 +167,22 @@ object PlaybackStore {
             beatHz = config.startBeatHz,
             remainingSeconds = config.durationMinutes * 60,
             routeLabel = "Connecting to audio output…",
+            stimulusLabel = config.preset.bandLabel,
         )
     }
 
-    fun progress(remainingSeconds: Int, routeLabel: String, currentBeatHz: Float) {
+    fun progress(
+        remainingSeconds: Int,
+        routeLabel: String,
+        currentBeatHz: Float,
+        musicDetected: Boolean,
+    ) {
         mutableSnapshot.value = mutableSnapshot.value.copy(
             isPlaying = true,
             beatHz = currentBeatHz,
             remainingSeconds = remainingSeconds.coerceAtLeast(0),
             routeLabel = routeLabel,
+            musicDetected = musicDetected,
             errorMessage = null,
         )
     }

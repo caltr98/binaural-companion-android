@@ -12,7 +12,7 @@ Optional before-and-after ratings for calm, focus, and energy are stored only in
 
 ## Spotify and other audio applications
 
-The app does not access, record, intercept, download, or modify audio from Spotify or another media application. Android mixes the locally generated stereo layer with other media playing on the device.
+The app does not access, record, intercept, download, or modify audio from Spotify or another media application. Android mixes the locally generated stereo layer with other media playing on the device. If Music assist is enabled, the app checks only whether another media playback configuration is active; it does not read the app identity, track metadata, waveform, or listening history.
 
 ## Health and safety
 

@@ -101,6 +101,7 @@ fun BinauralCompanionApp() {
     var carrierHz by remember { mutableFloatStateOf(selectedPreset.carrierHz) }
     var level by remember { mutableFloatStateOf(BinauralPlaybackService.DEFAULT_LEVEL) }
     var durationMinutes by remember { mutableIntStateOf(selectedPreset.defaultMinutes) }
+    var musicAssist by remember { mutableStateOf(true) }
     var useGatewayPrep by remember { mutableStateOf(true) }
     var pendingStart by remember { mutableStateOf<PendingStart?>(null) }
     var gatewayPrepRequest by remember { mutableStateOf<PendingStart?>(null) }
@@ -158,6 +159,7 @@ fun BinauralCompanionApp() {
                 carrierHz = carrierHz,
                 level = level,
                 durationMinutes = durationMinutes,
+                musicAssist = musicAssist,
             ),
             openSpotify = openSpotify,
         )
@@ -213,15 +215,18 @@ fun BinauralCompanionApp() {
             }
             item {
                 AdvancedControls(
+                    preset = selectedPreset,
                     startBeatHz = startBeatHz,
                     endBeatHz = endBeatHz,
                     carrierHz = carrierHz,
                     level = level,
+                    musicAssist = musicAssist,
                     enabled = !playback.isPlaying,
                     onStartBeatChanged = { startBeatHz = it },
                     onEndBeatChanged = { endBeatHz = it },
                     onCarrierChanged = { carrierHz = it },
                     onLevelChanged = { level = it },
+                    onMusicAssistChanged = { musicAssist = it },
                 )
             }
             item {
@@ -312,7 +317,7 @@ private fun AppHeader(onEvidence: () -> Unit) {
     ) {
         Column {
             Text(
-                text = "BINAURAL",
+                text = "AUDITORY",
                 color = Mint,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
@@ -361,13 +366,22 @@ private fun SessionHero(
             )
             Text(
                 text = if (playback.isPlaying) {
-                    "${playback.presetTitle} · ${formatHz(playback.beatHz)} Hz difference"
+                    "${playback.presetTitle} · ${playback.stimulusLabel}"
                 } else {
                     "${selectedPreset.title} · ready to layer"
                 },
                 color = TextSecondary,
                 fontSize = 15.sp,
             )
+            if (playback.isPlaying && playback.musicDetected) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Concurrent music detected · adaptive layer active",
+                    color = Mint,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                )
+            }
             if (playback.errorMessage != null) {
                 Spacer(Modifier.height(12.dp))
                 Text(
@@ -564,15 +578,18 @@ private fun PresetRow(
 
 @Composable
 private fun AdvancedControls(
+    preset: BeatPreset,
     startBeatHz: Float,
     endBeatHz: Float,
     carrierHz: Float,
     level: Float,
+    musicAssist: Boolean,
     enabled: Boolean,
     onStartBeatChanged: (Float) -> Unit,
     onEndBeatChanged: (Float) -> Unit,
     onCarrierChanged: (Float) -> Unit,
     onLevelChanged: (Float) -> Unit,
+    onMusicAssistChanged: (Boolean) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -583,37 +600,59 @@ private fun AdvancedControls(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ControlLabel("Start difference", "${formatHz(startBeatHz)} Hz")
-            Slider(
-                value = startBeatHz,
-                onValueChange = onStartBeatChanged,
-                enabled = enabled,
-                valueRange = 0f..40f,
-                steps = 39,
-            )
-            ControlLabel("End difference", "${formatHz(endBeatHz)} Hz")
-            Slider(
-                value = endBeatHz,
-                onValueChange = onEndBeatChanged,
-                enabled = enabled,
-                valueRange = 0f..40f,
-                steps = 39,
-            )
-            Text(
-                text = "Use the same values for a steady layer, or different values for a gradual glide. 0 Hz is the neutral control.",
-                color = TextSecondary,
-                fontSize = 12.sp,
-                lineHeight = 17.sp,
-            )
-            HorizontalDivider(color = RaisedSurface)
-            ControlLabel("Carrier tone", "${carrierHz.roundToInt()} Hz")
-            Slider(
-                value = carrierHz,
-                onValueChange = onCarrierChanged,
-                enabled = enabled,
-                valueRange = 160f..400f,
-                steps = 23,
-            )
+            if (preset.stimulusType.adjustableParameters) {
+                ControlLabel("Start difference", "${formatHz(startBeatHz)} Hz")
+                Slider(
+                    value = startBeatHz,
+                    onValueChange = onStartBeatChanged,
+                    enabled = enabled,
+                    valueRange = 0f..40f,
+                    steps = 39,
+                )
+                ControlLabel("End difference", "${formatHz(endBeatHz)} Hz")
+                Slider(
+                    value = endBeatHz,
+                    onValueChange = onEndBeatChanged,
+                    enabled = enabled,
+                    valueRange = 0f..40f,
+                    steps = 39,
+                )
+                Text(
+                    text = "Use the same values for a steady layer, or different values for a gradual glide. 0 Hz is the neutral control.",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                )
+                HorizontalDivider(color = RaisedSurface)
+                ControlLabel("Carrier tone", "${carrierHz.roundToInt()} Hz")
+                Slider(
+                    value = carrierHz,
+                    onValueChange = onCarrierChanged,
+                    enabled = enabled,
+                    valueRange = 160f..400f,
+                    steps = 23,
+                )
+            } else {
+                Text(
+                    text = preset.stimulusType.label.uppercase(),
+                    color = Periwinkle,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.1.sp,
+                )
+                Text(
+                    text = preset.bandLabel,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Research waveform parameters are fixed so the signal is not accidentally changed into a different protocol.",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                )
+            }
             HorizontalDivider(color = RaisedSurface)
             ControlLabel("Layer level", "${(level * 100).roundToInt()}%")
             Slider(
@@ -629,6 +668,27 @@ private fun AdvancedControls(
                 fontSize = 12.sp,
                 lineHeight = 17.sp,
             )
+            HorizontalDivider(color = RaisedSurface)
+            FilterChip(
+                selected = musicAssist,
+                onClick = { onMusicAssistChanged(!musicAssist) },
+                enabled = enabled,
+                label = { Text(if (musicAssist) "Music assist on" else "Music assist off") },
+            )
+            Text(
+                text = "When another media stream is active, Music assist smoothly raises only this local layer by 25%. It detects playback state, not song audio, and never records Spotify.",
+                color = TextSecondary,
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
+            )
+            if (!preset.stimulusType.isBinaural) {
+                Text(
+                    text = "For the closest research-waveform comparison, turn Music assist off and play this mode alone. Adding Spotify is a separate, unvalidated listening condition.",
+                    color = Warm,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                )
+            }
         }
     }
 }
@@ -730,7 +790,7 @@ private fun PlaybackActions(
                     contentColor = DeepInk,
                 ),
             ) {
-                Text("Stop binaural layer", fontWeight = FontWeight.Bold)
+                Text("Stop audio layer", fontWeight = FontWeight.Bold)
             }
         } else {
             Button(
@@ -783,7 +843,7 @@ private fun IntegrationNote() {
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Android mixes both apps into the same headphone output. The companion never records, intercepts, downloads, or changes the Spotify track.",
+                text = "Android mixes both apps sample-by-sample into the same headphone output. Music assist detects a concurrent player and smoothly adjusts only the generated layer; it never records, intercepts, downloads, or rewrites Spotify.",
                 color = TextSecondary,
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
@@ -842,6 +902,7 @@ private fun SafetyDialog(onAccept: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SafetyLine("Use stereo headphones at a comfortable volume.")
+                SafetyLine("The tone-pip and click modes can feel sharp; begin very low and never use them to test hearing limits.")
                 SafetyLine("Do not use while driving or operating machinery.")
                 SafetyLine("Stop immediately if you feel discomfort, dizziness, or distress.")
                 SafetyLine("This is an audio experience, not medical treatment or a substitute for care.")
@@ -978,13 +1039,13 @@ private fun EvidenceDialog(onDismiss: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "A pure tone goes to the left ear and a slightly different tone goes to the right. The frequency difference is perceived as a binaural beat, so stereo headphones matter.",
+                    text = "Binaural modes send slightly different tones to the two ears. GENUS tone pips, AM flutter, and click trains instead place a real 40 Hz pattern in both channels, which generally evokes a stronger auditory steady-state response.",
                     color = TextSecondary,
                     lineHeight = 20.sp,
                 )
                 Text("Evidence boundary", color = Mint, fontWeight = FontWeight.Bold)
                 Text(
-                    text = "Research on binaural beats is mixed and highly parameter-dependent. A neutral 0 Hz mode and private before/after ratings help you compare your response instead of assuming a preset works.",
+                    text = "The 1 ms, 10 kHz MIT auditory protocol comes from a 2019 mouse study, not the 2016 light-flicker paper. Human ASSR shows neural phase-locking to 40 Hz sounds, but that is not proof of treatment, cognitive enhancement, or everyday benefit. Music can mask a quiet binaural layer; Music assist improves audibility but cannot verify brain entrainment without EEG.",
                     color = TextSecondary,
                     lineHeight = 20.sp,
                 )

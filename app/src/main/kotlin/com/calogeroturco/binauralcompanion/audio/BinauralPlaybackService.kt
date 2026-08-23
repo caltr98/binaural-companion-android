@@ -89,11 +89,9 @@ class BinauralPlaybackService : Service() {
             check(minimum > 0) { "Android could not create a stereo audio buffer." }
             val bufferBytes = maxOf(minimum, 4_096 * BYTES_PER_STEREO_FRAME)
             val buffer = ShortArray(bufferBytes / Short.SIZE_BYTES)
-            val generator = StereoToneGenerator(
-                sampleRate = SAMPLE_RATE,
-                carrierHz = config.carrierHz,
-                beatHz = config.startBeatHz,
-            )
+            val generator = createGenerator(config, SAMPLE_RATE)
+            val binauralGenerator = generator as? StereoToneGenerator
+            val audioManager = getSystemService(AudioManager::class.java)
 
             localTrack = AudioTrack.Builder()
                 .setAudioAttributes(
@@ -124,6 +122,7 @@ class BinauralPlaybackService : Service() {
             val startedAt = SystemClock.elapsedRealtime()
             val durationMs = config.durationMinutes * 60_000L
             var lastUiSecond = -1
+            var smoothedLevel = config.level
 
             while (sessionToken.get() == token && !Thread.currentThread().isInterrupted) {
                 val elapsedMs = SystemClock.elapsedRealtime() - startedAt
@@ -131,12 +130,22 @@ class BinauralPlaybackService : Service() {
                 if (remainingMs <= 0L) break
 
                 val progress = (elapsedMs.toFloat() / durationMs).coerceIn(0f, 1f)
-                val currentBeatHz = config.startBeatHz +
-                    (config.endBeatHz - config.startBeatHz) * progress
-                generator.updateBeatHz(currentBeatHz)
+                val currentBeatHz = if (binauralGenerator != null) {
+                    config.startBeatHz + (config.endBeatHz - config.startBeatHz) * progress
+                } else {
+                    40f
+                }
+                binauralGenerator?.updateBeatHz(currentBeatHz)
+                val musicDetected = hasConcurrentMediaPlayback(audioManager)
+                val targetLevel = MusicMixPolicy.effectiveLevel(
+                    baseLevel = config.level,
+                    musicDetected = musicDetected,
+                    musicAssist = config.musicAssist,
+                )
+                smoothedLevel += (targetLevel - smoothedLevel) * MUSIC_LEVEL_SMOOTHING
                 val fadeIn = (elapsedMs / 2_000f).coerceIn(0f, 1f)
                 val fadeOut = (remainingMs / 3_000f).coerceIn(0f, 1f)
-                generator.fill(buffer, level = config.level, envelope = min(fadeIn, fadeOut))
+                generator.fill(buffer, level = smoothedLevel, envelope = min(fadeIn, fadeOut))
                 val written = localTrack.write(buffer, 0, buffer.size, AudioTrack.WRITE_BLOCKING)
                 check(written >= 0) { "Stereo playback stopped unexpectedly." }
 
@@ -147,6 +156,7 @@ class BinauralPlaybackService : Service() {
                         remainingSeconds = remainingSeconds,
                         routeLabel = AudioRouteMonitor.labelFor(localTrack.routedDevice),
                         currentBeatHz = currentBeatHz,
+                        musicDetected = musicDetected && config.musicAssist,
                     )
                 }
             }
@@ -237,22 +247,43 @@ class BinauralPlaybackService : Service() {
 
     private fun Intent.toSessionConfig(): SessionConfig {
         val preset = BeatPreset.fromId(getStringExtra(EXTRA_PRESET_ID))
+        val carrierHz = when (preset.stimulusType) {
+            StimulusType.BINAURAL_BEAT ->
+                getFloatExtra(EXTRA_CARRIER_HZ, preset.carrierHz).coerceIn(80f, 900f)
+            StimulusType.GENUS_TONE_PIPS -> 10_000f
+            StimulusType.ASSR_AM_TONE -> 1_000f
+            StimulusType.ASSR_CLICK_TRAIN -> 0f
+        }
         return SessionConfig(
             preset = preset,
             startBeatHz = getFloatExtra(EXTRA_START_BEAT_HZ, preset.startBeatHz).coerceIn(0f, 40f),
             endBeatHz = getFloatExtra(EXTRA_END_BEAT_HZ, preset.endBeatHz).coerceIn(0f, 40f),
-            carrierHz = getFloatExtra(EXTRA_CARRIER_HZ, preset.carrierHz).coerceIn(80f, 900f),
+            carrierHz = carrierHz,
             level = getFloatExtra(EXTRA_LEVEL, DEFAULT_LEVEL).coerceIn(0.01f, StereoToneGenerator.MAX_LEVEL),
             durationMinutes = getIntExtra(EXTRA_DURATION_MINUTES, 20).coerceIn(5, 90),
+            musicAssist = getBooleanExtra(EXTRA_MUSIC_ASSIST, true),
         )
     }
+
+    private fun hasConcurrentMediaPlayback(audioManager: AudioManager): Boolean =
+        runCatching {
+            audioManager.activePlaybackConfigurations.count { playback ->
+                playback.audioAttributes.usage in CONCURRENT_MEDIA_USAGES
+            } > 1
+        }.getOrDefault(false)
 
     companion object {
         private const val CHANNEL_ID = "binaural_sessions"
         private const val NOTIFICATION_ID = 4102
         private const val SAMPLE_RATE = 48_000
         private const val BYTES_PER_STEREO_FRAME = 4
+        private const val MUSIC_LEVEL_SMOOTHING = 0.12f
         const val DEFAULT_LEVEL = 0.06f
+        private val CONCURRENT_MEDIA_USAGES = setOf(
+            AudioAttributes.USAGE_MEDIA,
+            AudioAttributes.USAGE_GAME,
+            AudioAttributes.USAGE_UNKNOWN,
+        )
 
         private const val ACTION_START = "com.calogeroturco.binauralcompanion.START"
         private const val ACTION_STOP = "com.calogeroturco.binauralcompanion.STOP"
@@ -262,6 +293,7 @@ class BinauralPlaybackService : Service() {
         private const val EXTRA_CARRIER_HZ = "carrier_hz"
         private const val EXTRA_LEVEL = "level"
         private const val EXTRA_DURATION_MINUTES = "duration_minutes"
+        private const val EXTRA_MUSIC_ASSIST = "music_assist"
 
         fun start(context: Context, config: SessionConfig) {
             val intent = Intent(context, BinauralPlaybackService::class.java)
@@ -272,6 +304,7 @@ class BinauralPlaybackService : Service() {
                 .putExtra(EXTRA_CARRIER_HZ, config.carrierHz)
                 .putExtra(EXTRA_LEVEL, config.level)
                 .putExtra(EXTRA_DURATION_MINUTES, config.durationMinutes)
+                .putExtra(EXTRA_MUSIC_ASSIST, config.musicAssist)
             ContextCompat.startForegroundService(context, intent)
         }
 
@@ -285,7 +318,9 @@ class BinauralPlaybackService : Service() {
             if (value % 1f == 0f) value.toInt().toString() else "%.1f".format(value)
 
         private fun formatBeatRange(config: SessionConfig): String =
-            if (config.startBeatHz == config.endBeatHz) {
+            if (config.preset.stimulusType != StimulusType.BINAURAL_BEAT) {
+                config.preset.bandLabel
+            } else if (config.startBeatHz == config.endBeatHz) {
                 "${formatHz(config.startBeatHz)} Hz difference"
             } else {
                 "${formatHz(config.startBeatHz)} → ${formatHz(config.endBeatHz)} Hz glide"

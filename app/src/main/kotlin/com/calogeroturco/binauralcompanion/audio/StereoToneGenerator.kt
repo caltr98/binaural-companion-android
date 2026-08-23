@@ -4,12 +4,16 @@ import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
+interface StereoPcmGenerator {
+    fun fill(target: ShortArray, level: Float, envelope: Float = 1f)
+}
+
 /** Pure PCM generator with a carrier-centered frequency difference between channels. */
 class StereoToneGenerator(
     val sampleRate: Int,
     val carrierHz: Float,
     beatHz: Float,
-) {
+) : StereoPcmGenerator {
     var beatHz: Float = beatHz
         private set
     var leftFrequencyHz: Float = 0f
@@ -38,7 +42,7 @@ class StereoToneGenerator(
         rightStep = TWO_PI * rightFrequencyHz / sampleRate
     }
 
-    fun fill(target: ShortArray, level: Float, envelope: Float = 1f) {
+    override fun fill(target: ShortArray, level: Float, envelope: Float) {
         require(target.size % 2 == 0) { "A stereo buffer must contain pairs of samples." }
         val amplitude = Short.MAX_VALUE * level.coerceIn(0f, MAX_LEVEL) * envelope.coerceIn(0f, 1f)
 
