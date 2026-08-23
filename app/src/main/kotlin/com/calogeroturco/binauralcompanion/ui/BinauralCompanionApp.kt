@@ -536,7 +536,7 @@ private fun PresetRow(
             val isSelected = preset == selected
             Card(
                 modifier = Modifier
-                    .width(184.dp)
+                    .width(224.dp)
                     .clickable(enabled = enabled) { onSelected(preset) },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
@@ -567,6 +567,19 @@ private fun PresetRow(
                     Text(
                         text = preset.description,
                         color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                    )
+                    Text(
+                        text = "POSSIBLE BENEFIT",
+                        color = Mint,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                    )
+                    Text(
+                        text = preset.benefit,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
                     )

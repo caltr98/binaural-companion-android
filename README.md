@@ -17,7 +17,7 @@ Android will ask you to approve installation from your browser or file manager b
 - Optional Music assist detects concurrent media playback and smoothly applies a capped 1.25× gain to only the local layer. It never captures song audio.
 - Wired, USB, classic Bluetooth, BLE, and hearing-device outputs are detected.
 - Headphone removal stops playback through `ACTION_AUDIO_BECOMING_NOISY`.
-- Nine evidence-labeled modes include ordinary binaural presets, a neutral control, 40 Hz binaural beats, MIT/Martorell tone pips, human ASSR amplitude modulation, and human ASSR clicks.
+- Nine evidence-labeled modes include ordinary binaural presets, a neutral control, 40 Hz binaural beats, MIT/Martorell tone pips, human ASSR amplitude modulation, and human ASSR clicks. Every mode states its possible benefit in plain language and identifies when human cognitive or health benefits remain unproven.
 - Start/end frequency controls support steady sessions or gradual glides from 0–40 Hz.
 - Each stereo pair is centered on the selected carrier so tuning the difference does not shift the average pitch.
 - An optional Gateway-inspired preparation guides distraction parking, slow breathing, one concrete intention, and body relaxation.
